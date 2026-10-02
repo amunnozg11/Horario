@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Calendario 2º SMR</title>
+<style>
+:root{--bg:#fbf7f0;--ink:#231f2e;--muted:#6f6a7c;--line:#e3dccd;--card:#fff;--now:#e5322d;
+box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#17141f;--ink:#f1edf8;--muted:#a49fb4;--line:#2d2839;--card:#211d2b}}
+:root[data-theme="dark"]{--bg:#17141f;--ink:#f1edf8;--muted:#a49fb4;--line:#2d2839;--card:#211d2b}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:"Avenir Next","Gill Sans","Segoe UI",Helvetica,sans-serif}
+main{max-width:1040px;margin:0 auto;padding:22px 12px 40px}
+h1{margin:0;font-size:2rem;font-weight:800;letter-spacing:-.03em}
+.sub{margin:4px 0 16px;color:var(--muted)}
+.scroll{overflow-x:auto;background:var(--card);border:1px solid var(--line);border-radius:14px}
+.cal{display:grid;grid-template-columns:52px repeat(5,minmax(150px,1fr));min-width:830px}
+.head{position:sticky;top:0;padding:12px 8px;text-align:center;font-weight:700;border-bottom:1px solid var(--line);background:var(--card)}
+.head.hoy{color:var(--now)}
+.axis,.col{position:relative;height:var(--H)}
+.axis span{position:absolute;right:8px;transform:translateY(-50%);font-size:.78rem;color:var(--muted)}
+.col{border-left:1px solid var(--line);background:repeating-linear-gradient(to bottom,transparent 0,transparent calc(var(--hh) - 1px),var(--line) calc(var(--hh) - 1px),var(--line) var(--hh))}
+.blk{position:absolute;left:4px;right:4px;border-radius:9px;padding:7px 9px;background:color-mix(in srgb,var(--c) 22%,var(--card));border:2px solid var(--c);overflow:hidden;line-height:1.2}
+.blk b{font-size:1.05rem}
+.blk .n{font-size:.8rem;margin-top:1px}
+.blk .p{font-size:.76rem;color:var(--muted);margin-top:3px}
+.blk .t{font-size:.72rem;color:var(--muted)}
+.blk.ahora{background:var(--c);color:#fff}
+.blk.ahora .p,.blk.ahora .t{color:#ffffffd0}
+.rec{position:absolute;left:0;right:0;background:repeating-linear-gradient(45deg,transparent 0 6px,var(--line) 6px 7px);font-size:.72rem;color:var(--muted);text-align:center}
+.linea{position:absolute;left:0;right:0;height:2px;background:var(--now);z-index:3}
+.linea::before{content:"";position:absolute;left:-4px;top:-4px;width:10px;height:10px;border-radius:50%;background:var(--now)}
+.pie{margin-top:12px;color:var(--muted);font-size:.9rem}
+.tema{position:absolute;top:22px;right:12px;padding:8px 14px;border-radius:999px;border:1.5px solid var(--line,#888);background:var(--card,var(--panel,var(--cell)));color:var(--ink);font:inherit;font-size:.95rem;cursor:pointer}
+.tema:focus-visible{outline:3px solid var(--ink);outline-offset:2px}
+main{position:relative}
+@media (max-width:560px){.tema{position:static;display:block;margin:0 0 12px auto}}
+</style>
+</head>
+<body>
+<main>
+<button class="tema" id="tema" type="button">Modo oscuro</button>
+<h1>Calendario 2º SMR</h1>
+<p class="sub">Cada bloque mide lo que dura la clase. Los recreos quedan rayados.</p>
+<div class="scroll"><div class="cal" id="cal"></div></div>
+<p class="pie">Desliza a los lados si tu pantalla es estrecha. La línea roja marca la hora actual.</p>
+</main>
+<script>
+const days=["Lunes","Martes","Miércoles","Jueves","Viernes"];
+const slots=[["8:30","9:25"],["9:25","10:20"],["10:40","11:35"],["11:35","12:30"],["12:40","13:35"],["13:35","14:30"]];
+const M={MME:["Montaje y mantenimiento de equipo","#e07a2f"],SOR:["Sistemas operativos en red","#0f9d7a"],SER:["Servicios en red","#1f8fd1"],APW:["Aplicaciones web","#d1447a"],DASP:["Digitalización aplicada a los sectores productivos","#14a3b8"],SASP:["Sostenibilidad aplicada al sistema productivo","#5aa02c"],IPEII:["Itinerario personal para la empleabilidad II","#c9a10a"],PI:["Proyecto Intermodular","#8a5a3c"],OPT:["Optativa","#7a4fd1"]};
+const P={F:"María Francisca Manchado Moraga",M:"Manuel Manchado Moraga",S:"María Soledad Casado Sanz",U:"Saúl González González de Mendoza"};
+const S=[
+["MME:F","SOR:M","MME:F","DASP:S","APW:S"],
+["MME:F","OPT:S","MME:F","SOR:M","SOR:M"],
+["OPT:S","SER:U","APW:S","IPEII:M","SOR:M"],
+["SOR:M","SER:U","APW:S","SER:U","MME:F"],
+["IPEII:M","APW:S","IPEII:M","MME:F","SER:U"],
+["SER:U","PI:F","SASP:M","OPT:S","SER:U"]];
+const mm=s=>{const[a,b]=s.split(":");return +a*60+ +b};
+const START=mm("8:30"),END=mm("14:30"),PX=1.55,H=(END-START)*PX;
+const y=m=>(m-START)*PX;
+const cal=document.getElementById("cal");
+cal.style.setProperty("--H",H+"px");cal.style.setProperty("--hh",(60*PX)+"px");
+const now=new Date(),hoy=now.getDay()-1,min=now.getHours()*60+now.getMinutes();
+let h='<div class="head"></div>'+days.map((d,i)=>'<div class="head'+(i===hoy?' hoy':'')+'">'+d+'</div>').join("");
+let ax='<div class="axis">';
+for(let m=START;m<=END;m+=60)ax+='<span style="top:'+y(m)+'px">'+Math.floor(m/60)+':'+String(m%60).padStart(2,"0")+'</span>';
+h+=ax+'</div>';
+for(let d=0;d<5;d++){
+ let c='<div class="col">';
+ [[mm("10:20"),mm("10:40"),"recreo"],[mm("12:30"),mm("12:40"),""]].forEach(r=>{c+='<div class="rec" style="top:'+y(r[0])+'px;height:'+(r[1]-r[0])*PX+'px">'+r[2]+'</div>'});
+ for(let i=0;i<6;i++){
+  const code=S[i][d];let j=i;
+  while(j+1<6&&j+1!==2&&j+1!==4&&S[j+1][d]===code)j++;
+  const[a,p]=code.split(":"),top=y(mm(slots[i][0])),hgt=y(mm(slots[j][1]))-top-3;
+  const ya=d===hoy&&min>=mm(slots[i][0])&&min<mm(slots[j][1]);
+  c+='<div class="blk'+(ya?' ahora':'')+'" style="--c:'+M[a][1]+';top:'+(top+1)+'px;height:'+hgt+'px"><b>'+a+'</b> <span class="t">'+slots[i][0]+' – '+slots[j][1]+'</span><div class="n">'+M[a][0]+'</div><div class="p">'+P[p]+'</div></div>';
+  i=j;
+ }
+ if(d===hoy&&min>=START&&min<=END)c+='<div class="linea" style="top:'+y(min)+'px"></div>';
+ h+=c+'</div>';
+}
+cal.innerHTML=h;
+</script>
+<script>
+(function(){
+ const r=document.documentElement,b=document.getElementById("tema");
+ const sys=()=>matchMedia("(prefers-color-scheme: dark)").matches?"dark":"light";
+ let saved=null;try{saved=localStorage.getItem("tema")}catch(e){}
+ let cur=saved||sys();
+ function aplicar(){r.setAttribute("data-theme",cur);b.textContent=cur==="dark"?"☀️ Modo claro":"🌙 Modo oscuro";b.setAttribute("aria-pressed",cur==="dark")}
+ b.onclick=()=>{cur=cur==="dark"?"light":"dark";try{localStorage.setItem("tema",cur)}catch(e){}aplicar()};
+ aplicar();
+})();
+</script>
+</body>
+</html>
